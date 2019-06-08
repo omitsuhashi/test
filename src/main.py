@@ -3,8 +3,8 @@ import requests
 import re
 import pandas as pd
 
-from datetime import date, timedelta
-from sqlalchemy import create_engine
+from datetime import date
+from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 
 from models.weekly_meteorological_info_model import WeeklyMeteorologicalInfoModel, WeeklyData
@@ -53,22 +53,28 @@ if __name__ == '__main__':
             recently_stack.append(title)
     session.commit()
 
-    update data
-    queries = zip(
-        session.query(WeeklyData).filter(WeeklyData.date==date.today() + timedelta(days=1)),
-        session.query(RecentlyData).all()
-    )
-
-    for x, y in queries:
+    for y in session.query(RecentlyData).all():
+        d = str(y.date)
+        p_code = int(y.primary_code)
+        s_code = int(y.secondary_code)
+        x = session.query(WeeklyData).filter(and_(
+            WeeklyData.date == d,
+            or_(
+                WeeklyData.secondary_code == s_code,
+                WeeklyData.primary_code == p_code
+            )
+        )).first()
+        if x is None:
+            continue
         x.min_temperature = y.min_temperature
         x.precipitation = y.precipitation
-
     session.commit()
 
     data = list()
     for x in session.query(WeeklyData).all():
+        precipitation = x.precipitation / 100 if x.precipitation > 0 else x.precipitation
         data.append(pd.Series(
-            [x.date, x.primary_code, x.secondary_code, x.min_temperature, x.precipitation],
+            [x.date.strftime('%Y%m%d'), x.primary_code, x.secondary_code, x.min_temperature, precipitation],
             index=['date', 'pref_id_1', 'pref_id_2', 'minTT', 'precipitation']
         ))
     d = pd.DataFrame(data)
