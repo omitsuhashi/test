@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 from models.weekly_meteorological_info_model import WeeklyMeteorologicalInfoModel
+from models.recently_meteorological_info_model import RecentlyMeteorologicalInfoModel
 from models.model_base import Base
 
 API = 'http://www.data.jma.go.jp/developer/xml/feed/regular_l.xml'
@@ -33,12 +34,23 @@ if __name__ == '__main__':
     weekly = [x for x in today_entry if x.find(root_prefix+'title').text == '府県週間天気予報']
     recently = [x for x in today_entry if x.find(root_prefix+'title').text == '府県天気予報']
 
-    # link_url = 'http://www.data.jma.go.jp/developer/xml/data/399f585e-30d9-3336-ab2f-7436b878e16d.xml'
-    # links = [x.find(root_prefix+'link').attrib['href'] for x in weekly]
-    # weekly = WeeklyMeteorologicalInfoModel(x)
-    # session.add_all(weekly.generate_input_data())
-    # session.commit()
+    weekly_stack = list()
+    recently_stack = list()
 
-    link_url = ''
+    for x in weekly:
+        title = x.find(root_prefix+'author').find(root_prefix+'name').text
+        if title not in weekly_stack:
+            link = x.find(root_prefix+'link').attrib['href']
+            w = WeeklyMeteorologicalInfoModel(link)
+            session.add_all(w.generate_input_data())
+            weekly_stack.append(title)
+    for x in recently:
+        title = x.find(root_prefix+'author').find(root_prefix+'name').text
+        if title not in recently_stack:
+            link = x.find(root_prefix+'link').attrib['href']
+            w = RecentlyMeteorologicalInfoModel(link)
+            session.add_all(w.generate_input_data())
+            recently_stack.append(title)
+    session.commit()
 
     session.close()
