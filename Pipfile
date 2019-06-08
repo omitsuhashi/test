@@ -6,11 +6,9 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-numpy = "*"
 pandas = "*"
 sqlalchemy = "*"
 requests = "*"
-xmlschema = "*"
 
 [requires]
 python_version = "3.7"

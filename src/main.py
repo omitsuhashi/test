@@ -1,14 +1,14 @@
-from datetime import date
 import xml.etree.ElementTree as ET
 import requests
 import re
+import pandas as pd
 
+from datetime import date, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-
-from models.weekly_meteorological_info_model import WeeklyMeteorologicalInfoModel
-from models.recently_meteorological_info_model import RecentlyMeteorologicalInfoModel
+from models.weekly_meteorological_info_model import WeeklyMeteorologicalInfoModel, WeeklyData
+from models.recently_meteorological_info_model import RecentlyMeteorologicalInfoModel, RecentlyData
 from models.model_base import Base
 
 API = 'http://www.data.jma.go.jp/developer/xml/feed/regular_l.xml'
@@ -52,5 +52,26 @@ if __name__ == '__main__':
             session.add_all(w.generate_input_data())
             recently_stack.append(title)
     session.commit()
+
+    update data
+    queries = zip(
+        session.query(WeeklyData).filter(WeeklyData.date==date.today() + timedelta(days=1)),
+        session.query(RecentlyData).all()
+    )
+
+    for x, y in queries:
+        x.min_temperature = y.min_temperature
+        x.precipitation = y.precipitation
+
+    session.commit()
+
+    data = list()
+    for x in session.query(WeeklyData).all():
+        data.append(pd.Series(
+            [x.date, x.primary_code, x.secondary_code, x.min_temperature, x.precipitation],
+            index=['date', 'pref_id_1', 'pref_id_2', 'minTT', 'precipitation']
+        ))
+    d = pd.DataFrame(data)
+    d.to_csv('./test.csv', index=False)
 
     session.close()
