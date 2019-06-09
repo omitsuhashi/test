@@ -84,6 +84,7 @@ class WeeklyData(Base):
     secondary_code = Column(Integer)
     min_temperature = Column(Integer, nullable=True)
     precipitation = Column(Float, nullable=True)
+    forecast = Column(String(256))
 
 
 class WeeklyMeteorologicalInfoModel(ModelBase):
@@ -121,13 +122,15 @@ class WeeklyMeteorologicalInfoModel(ModelBase):
         for x, y in zip(self.area_predict.items, self.point_predict.items):
             min_tt_list = self.__get_data_list(y, '最低気温')
             precipitation_list = self.__get_data_list(x, '降水確率')
-            for d, min_tt, precipitation in zip(date_list, min_tt_list, precipitation_list):
+            forecasts = self.__get_data_list(x, '天気')
+            for d, min_tt, precipitation, forecast in zip(date_list, min_tt_list, precipitation_list, forecasts):
                 data.append(WeeklyData(
                     observation_spot=x.area.name,
                     date=d,
                     primary_code=x.area.code,
                     secondary_code=y.area.code,
                     min_temperature=min_tt.value,
-                    precipitation=precipitation.value
+                    precipitation=precipitation.value,
+                    forecast=forecast.value,
                 ))
         return data

@@ -70,13 +70,34 @@ if __name__ == '__main__':
         x.precipitation = y.precipitation
     session.commit()
 
+    def convert_forecast_one_hot(forecast: str) -> pd.Series:
+        forecast_one_hot = {
+            'sunny': 0,
+            'cloud': 0,
+            'rain': 0,
+            'snow': 0
+        }
+        if '晴れ' in forecast:
+            forecast_one_hot['sunny'] = 1
+        if 'くもり' in forecast:
+            forecast_one_hot['cloud'] = 1
+        if '雨' in forecast:
+            forecast_one_hot['rain'] = 1
+        if '雪' in forecast:
+            forecast_one_hot['snow'] = 1
+        return pd.Series(forecast_one_hot, forecast_one_hot.keys())
+
     data = list()
     for x in session.query(WeeklyData).all():
         precipitation = x.precipitation / 100 if x.precipitation > 0 else x.precipitation
-        data.append(pd.Series(
+        forecasts = convert_forecast_one_hot(x.forecast)
+        d = pd.Series(
             [x.date.strftime('%Y%m%d'), x.primary_code, x.secondary_code, x.min_temperature, precipitation],
             index=['date', 'pref_id_1', 'pref_id_2', 'minTT', 'precipitation']
-        ))
+        )
+        d = pd.concat([d, forecasts])
+        precipitation = x.precipitation / 100 if x.precipitation > 0 else x.precipitation
+        data.append(d)
     d = pd.DataFrame(data)
     d.to_csv('./test.csv', index=False)
 
